@@ -1,5 +1,6 @@
 import numpy as np 
 import matplotlib.pyplot as plt
+from sklearn.cluster import k_means
 from utils import isotropic_gaussian, load_iris_dataset
 
 
@@ -14,35 +15,31 @@ class EM:
         - Ds : (K, D) diagonals of Gaussian isotropic covariance matrices
         (where D is the dimension of the given samples)
     """
-    def __init__(self, K, epsilon=1e-3):
+    def __init__(self, K, epsilon=1e-3, max_steps=50):
         self.K = K
         self.epsilon = epsilon
         self.P = None
         self.r = None
         self.mus = None
         self.Ds = None
+        self.max_steps = max_steps
 
         # stored log likelihood values for stopping criterion
         self.nlls = []
 
 
     def _init_parameters(self, X):
-        """Random initialization of the EM parameters."""
-        mean = X.mean(axis=0)
-        sigma2 = X.var(axis=0)
+        """Initialize EM parameters using k-means"""
+        N, D = X.shape
 
-        # sample mu_k randomly
-        self.mus = np.random.multivariate_normal(
-            mean=mean, 
-            cov=sigma2 * np.eye(len(mean)),
-            size=self.K
-        )
+        # initialize mu_k and p_k with k_means
+        self.mus, labels, *_ = k_means(X, self.K)
+        self.P = np.array([
+            (labels == k).sum() / N for k in range(self.K)
+        ])
 
         # set the D_k to the same value
-        self.Ds = np.array([sigma2 for _ in range(self.K)])
-
-        # set the probabilities p_k without any prior
-        self.P = np.ones(self.K) / self.K
+        self.Ds = np.ones((self.K, D))
 
 
     def _e_step(self, x):
@@ -64,21 +61,21 @@ class EM:
 
     def _m_step(self, x):
         """Maximisation step."""
-        N, d = x.shape
+        N, D = x.shape
         Ns = self.r.sum(1)
         
         # update p_k
         self.P = Ns / N
 
-        # update mu_k
-        self.mus = ((self.r @ x).T / Ns).T
+        for k in range(self.K):
+            # update mu_k
+            self.mus[k] = x.T @ self.r[k] / Ns[k]
 
-        # update D_k
-        # TODO: Remove the for
-        # TODO: check if K = N does not make the wrong operation
-        self.Ds = np.array([
-            (self.r[k] * (x - self.mus[k]).T ** 2).T.sum(0)
-         for k in range(self.K)])
+            # update D_k
+            self.Ds[k] = np.sum(
+                self.r[k, :, None] * (x - self.mus[k]) ** 2,
+                axis=0
+            ) / Ns[k]
 
     
     def fit(self, X):
@@ -86,9 +83,7 @@ class EM:
         self._init_parameters(X)
 
         # Main loop
-        stop = False
-
-        while not stop:
+        for _ in range(self.max_steps):
             # E step
             self._e_step(X)
 
@@ -96,13 +91,16 @@ class EM:
             self._m_step(X)
 
             # Stopping criterion
-            stop = len(self.nlls) > 1 and np.abs(self.nlls[-1] - self.nlls[-2]) < self.epsilon
+            if len(self.nlls) > 1 and np.abs(self.nlls[-1] - self.nlls[-2]) < self.epsilon:
+                # Compute labels
+                self.labels_ = self.r.max(axis=0)
+                break
 
 
 if __name__ == '__main__':
     # Load Iris dataset
     X, Z = load_iris_dataset()
-    K = 2
+    K = 4
 
     # Fit an EM model
     model = EM(K)
@@ -118,6 +116,7 @@ if __name__ == '__main__':
         label='log likelihood'
     )
     plt.xlabel('iterations')
+    plt.legend()
     plt.show()
 
     # Print the parameters
