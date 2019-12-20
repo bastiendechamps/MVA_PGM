@@ -1,5 +1,9 @@
 import numpy as np
+from matplotlib.patches import Ellipse
+import matplotlib.pyplot as plt
+import matplotlib.transforms as transforms
 from sklearn.datasets import load_iris
+from scipy.linalg import eigh
 
 
 def load_iris_dataset():
@@ -25,3 +29,38 @@ def isotropic_gaussian(x, mu, D):
     density = np.exp(temp) / np.sqrt(2 * np.pi ** len(mu) * np.prod(D))
 
     return density
+
+
+def confidence_ellipse(mean, cov, ax, n_std=1.0, facecolor='none', **kwargs):
+    """
+    Create a plot of the covariance confidence ellipse of *x* and *y*.
+
+    Args:
+        - ax : the axes object to draw the ellipse into.
+        - n_std : The number of standard deviations to determine the ellipse's radiuses.
+        - kwargs : matplotlib.patches.Patch properties
+    """
+    # Eigendecomposition of the covariance matrix
+    sigma, u = eigh(cov)
+
+    # Compute ellipse features
+    size = n_std * np.sqrt(sigma)
+    theta = np.degrees(np.arctan2(*u[:, 0][::-1]))
+
+    ellipse = Ellipse(
+        xy=mean,
+        width=size[0]*5,
+        height=size[1]*5,
+        angle=theta,
+        alpha=0.2,
+        **kwargs
+    )
+
+    # Add the ellipse to the current plot
+    ax.add_patch(ellipse)
+
+
+def get_cmap(n, name='hsv'):
+    '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct 
+    RGB color; the keyword argument name must be a standard mpl colormap name.'''
+    return plt.cm.get_cmap(name, n)

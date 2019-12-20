@@ -77,7 +77,7 @@ class EM:
                 axis=0
             ) / Ns[k]
 
-    
+            
     def fit(self, X):
         # initialization of the parameters
         self._init_parameters(X)
@@ -93,10 +93,10 @@ class EM:
             # Stopping criterion
             if len(self.nlls) > 1 and np.abs(self.nlls[-1] - self.nlls[-2]) < self.epsilon:
                 # Compute labels
-                self.labels_ = self.r.max(axis=0)
+                self.labels_ = self.r.argmax(axis=0)
                 break
 
-
+    
 if __name__ == '__main__':
     # Load Iris dataset
     X, Z = load_iris_dataset()
@@ -118,6 +118,7 @@ if __name__ == '__main__':
     plt.xlabel('iterations')
     plt.legend()
     plt.show()
+
 
     # Print the parameters
     print('p parameters:')
