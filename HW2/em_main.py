@@ -4,7 +4,7 @@ from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 from scipy.stats import multivariate_normal
 
-from utils import load_iris_dataset, confidence_ellipse, get_cmap
+from utils import load_iris_dataset, confidence_ellipse, get_cmap, custom_data
 from em import EM
 
 
@@ -66,14 +66,13 @@ def model_dict(X, Z, K):
 
     return models
 
-def compare_models(K=2, figsize=(7, 12), cm='viridis'):
+def compare_models(X, Z, K=2, figsize=(7, 12), cm='viridis'):
     """Run and compare diagonal EM, general EM and K-means on Iris dataset.
     Args:
         - K : number of clusters
     """
 
     # Load Iris dataset
-    X, Z = load_iris_dataset()
     N, d = X.shape
     true_K = len(np.unique(Z))
 
@@ -93,6 +92,11 @@ def compare_models(K=2, figsize=(7, 12), cm='viridis'):
         X_chosen = X[:, idx]
 
         for j, model_name in enumerate(models):
+            if len(features_pairs) == 1:
+                ax = axes[j]
+            else:
+                ax = axes[i, j]
+            
             features = models[model_name]
             means = features['mean'][:, idx]
             covs = features['cov']
@@ -105,25 +109,25 @@ def compare_models(K=2, figsize=(7, 12), cm='viridis'):
             if covs is not None:
                 covs = covs[:, idx, :][:, :, idx]
 
-            axes[i, j].scatter(
+            ax.scatter(
                 *X_chosen.T,
                 c=labels, s=10., edgecolors='k', lw=0.5,
                 cmap=cm
             )
 
             # Set subplot title
-            axes[i, j].set_title(
+            ax.set_title(
                 '{}  ({}, {})'.format(model_name, idx[0], idx[1]),
-                fontsize=8., y=0.96
+                fontsize=10., y=0.96
             )
-            axes[i, j].set_yticklabels([])
-            axes[i, j].set_xticklabels([])
+            ax.set_yticklabels([])
+            ax.set_xticklabels([])
 
             for k in range(K):
                 mean = means[k]
                 # Plot the mean
-                axes[i, j].scatter(
-                    *mean, s=np.random.randint(40, 100), edgecolors='w', 
+                ax.scatter(
+                    *mean, s=70., edgecolors='w', 
                     c=np.array([cmap(k)])
                 )
             
@@ -131,15 +135,21 @@ def compare_models(K=2, figsize=(7, 12), cm='viridis'):
                 if covs is not None:
                     cov = covs[k]
                     confidence_ellipse(
-                        mean, cov, axes[i, j], 
+                        mean, cov, ax, 
                         color=cmap(k),
                         facecolor=cmap(k)
                     )        
      
-    plt.show() 
-
-
+    plt.show()
+    
 
 if __name__ == "__main__":
+    # Test on Iris dataset
+    X, Z = load_iris_dataset()
     K = 3
-    compare_models(K)
+    #compare_models(X, Z, K)
+
+    # Test on custom dataset
+    X, Z = custom_data(1000)
+    K = 2
+    compare_models(X, Z, figsize=(10, 2))
