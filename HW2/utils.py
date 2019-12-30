@@ -64,3 +64,32 @@ def get_cmap(n, name='hsv'):
     '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct 
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
     return plt.cm.get_cmap(name, n)
+
+
+def custom_data(N, sigma1=0.1, sigma2=1.):
+    """Generates a custom dataset (cross-shaped) to compare the EM algorithms and the K-Means.
+    Args:
+        - N : number of data samples in each Gaussian
+        - rotation : angle to rotate the Gaussians
+
+    Returns:
+        - X : (N, 2) dataset
+        - Z : (N,) labels
+    """
+    X1 = np.hstack([
+        np.random.normal(0, sigma1, size=N),
+        np.random.normal(0, sigma2, size=N)
+    ])
+    
+    X2 = np.hstack([
+        np.random.normal(0, sigma2, size=N),
+        np.random.normal(0, sigma1, size=N)
+    ])
+
+    X = np.vstack([X1, X2]).T
+    Z = np.hstack([
+        np.zeros(N, dtype=int), 
+        np.ones(N, dtype=int)
+    ])
+
+    return X, Z
