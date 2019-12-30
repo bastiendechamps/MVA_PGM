@@ -8,6 +8,8 @@ class SumProductUndirectedChain:
         self.psis_double = np.log(psis_double)
         self.mu_asc = []
         self.mu_desc = []
+        self._Z = None
+        self.propagated = False
 
     def __len__(self):
         return len(self.psis_single)
@@ -34,9 +36,11 @@ class SumProductUndirectedChain:
             self.mu_desc.append(logsumexp(msg_double + msg_single, axis=1))
 
         self.mu_desc = list(reversed(self.mu_desc))
+        self.propagated = True
        
 
     def marginalize(self, idx):
+        assert self.propagated, "Call propagate before marginalizing"
         # Compute un-normalized log probs
         log_probs = self.psis_single[idx] + self.mu_asc[idx] + self.mu_desc[idx]
 
@@ -44,10 +48,18 @@ class SumProductUndirectedChain:
         probs = np.exp(log_probs)
 
         # Normalize
-        Z = np.sum(probs)
-        probs /= Z
+        self._Z = np.sum(probs)
+        probs /= self._Z
         
         return probs
+
+    @property
+    def Z(self):
+        assert self.propagated, "Call propagate before normalization"
+        if self._Z is None:
+            self.marginalize(0)
+        return self._Z
+
 
 if __name__ == "__main__":
     # Test the sum product algorithm on independant Bernouilli distributions
