@@ -130,7 +130,7 @@ if __name__ == "__main__":
     # Test on Iris dataset
     X, Z = load_iris_dataset()
     K = 3
-    # compare_models(X, Z, K)
+    compare_models(X, Z, K)
 
     # Test on custom dataset
     X, Z = custom_data(1000)

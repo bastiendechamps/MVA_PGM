@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     alpha = 0.0
 
-    betas = np.linspace(0.0, 2.0, 50)
+    betas = np.linspace(0.0, 2.0, 20)
     log_zs = []
 
     for i, beta in enumerate(betas):
