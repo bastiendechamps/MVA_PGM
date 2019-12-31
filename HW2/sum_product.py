@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.special import logsumexp
 import scipy.stats as stats
+import matplotlib.pyplot as plt
 
 
 class SumProductUndirectedChain:
@@ -94,3 +95,14 @@ if __name__ == "__main__":
     chain.marginalize(0)
 
     print("Partition function: Z =", chain.Z)
+
+    # Some plots
+    fig, axes = plt.subplots(1, 3, figsize=(10, 3))
+
+    for i in range(len(chain)):
+        p = chain.marginalize(i)
+        x = np.arange(len(p))
+        axes[i].bar(x, p)
+        axes[i].set_title("$p(x_{})$".format(i + 1))
+
+    plt.show()
