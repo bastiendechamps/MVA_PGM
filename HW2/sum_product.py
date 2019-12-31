@@ -15,7 +15,7 @@ class SumProductUndirectedChain:
         self.psis_double_log = psis_double_log
         self.mu_asc = []
         self.mu_desc = []
-        self._Z = None
+        self._logZ = None
         self.propagated = False
 
     def __len__(self):
@@ -43,32 +43,36 @@ class SumProductUndirectedChain:
 
         self.propagated = True
 
-    def marginalize(self, idx):
+    def marginalize(self, idx, logscale=True):
+        """Marginalize the law of the node idx."""
         assert self.propagated, "Call propagate before marginalizing"
         # Compute un-normalized log probs
         log_probs = self.psis_single_log[idx] + self.mu_asc[idx] + self.mu_desc[idx]
 
-        # Get back from log scale
-        probs = np.exp(log_probs)
+        # Compute the log of Z
+        self._logZ = logsumexp(log_probs)
 
-        # Normalize
-        self._Z = np.sum(probs)
-        probs /= self._Z
+        # Normalize log probs
+        log_probs -= self._logZ
 
-        return probs
+        if logscale:
+            return log_probs
+
+        else:
+            return np.exp(log_probs)
 
     @property
-    def Z(self):
+    def logZ(self):
         assert self.propagated, "Call propagate before normalization"
-        if self._Z is None:
+        if self._logZ is None:
             self.marginalize(0)
-        return self._Z
+        return self._logZ
 
 
 if __name__ == "__main__":
     # Test the sum product algorithm on independant Bernouilli distributions
     # Dimensions of each distribution
-    n1, n2, n3 = 2, 5, 20
+    n1, n2, n3 = 2, 6, 10
 
     # Bernouilli (unormalized)
     psi1 = np.array([4.0, 1.0])
@@ -77,7 +81,7 @@ if __name__ == "__main__":
     psi2 = 5.0 * stats.binom.pmf(np.arange(n2), 5, 0.4)
 
     # Poisson (unormalized)
-    psi3 = 4.0 * stats.poisson.pmf(np.arange(n3), 10.0)
+    psi3 = 4.0 * stats.poisson.pmf(np.arange(n3), 2.0)
 
     psis_single = [psi1, psi2, psi3]
 
@@ -94,13 +98,13 @@ if __name__ == "__main__":
     chain.propagate()
     chain.marginalize(0)
 
-    print("Partition function: Z =", chain.Z)
+    print("Partition function: Z =", np.exp(chain.logZ))
 
     # Some plots
     fig, axes = plt.subplots(1, 3, figsize=(10, 3))
 
     for i in range(len(chain)):
-        p = chain.marginalize(i)
+        p = chain.marginalize(i, logscale=False)
         x = np.arange(len(p))
         axes[i].bar(x, p)
         axes[i].set_title("$p(x_{})$".format(i + 1))
